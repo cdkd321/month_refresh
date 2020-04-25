@@ -18,7 +18,7 @@
 {% block body %}
 
     <body>
-
+    {# 导航条目分类 #}
 	<div class="navbar_con">
 		<div class="navbar">
 			<h1 class="fl">全部商品分类</h1>
@@ -32,12 +32,15 @@
 		</div>
 	</div>
 
+
 	<div class="center_con clearfix">
+    {# 居中部位，展示商品分类 文字版 #}
 		<ul class="subnav fl">
             {% for type in types %}
 			    <li><a href="#model0{{ forloop.counter }}" class="{{ type.logo }}">{{ type.name }}</a></li>
             {% endfor %}
 		</ul>
+    {# 展示商品滚动图片 #}
 		<div class="slide fl">
 			<ul class="slide_pics">
                 {% for banner in goods_banners  %}
@@ -48,6 +51,7 @@
 			<div class="next"></div>
 			<ul class="points"></ul>
 		</div>
+    {# 展示商品活动侧边 #}
 		<div class="adv fl">
             {% for banner in promotion_banners %}
 			    <a href="{{ banner.url }}"><img src="{{ banner.image.url }}"></a>

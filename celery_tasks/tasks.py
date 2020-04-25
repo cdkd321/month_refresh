@@ -4,6 +4,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from celery import Celery
 import time
+from django.template import loader, RequestContext
 
 # 在任务处理者一端加这几句
 import os

@@ -29,34 +29,36 @@ class BaseModelAdmin(admin.ModelAdmin):
 
 
 class GoodsTypeAdmin(BaseModelAdmin):
+    list_display = ['name', 'logo']
     pass
 
 
 class IndexGoodsBannerAdmin(BaseModelAdmin):
-    pass
-
-
-class IndexGoodsBannerAdmin(BaseModelAdmin):
+    list_display = ['sku', 'image', 'index']
     pass
 
 
 class IndexTypeGoodsBannerAdmin(BaseModelAdmin):
+    list_display = ['type', 'sku', 'display_type', 'index']
     pass
 
 
 class IndexPromotionBannerAdmin(BaseModelAdmin):
+    list_display = ['name', 'url', 'image', 'index']
     pass
 
 
 class GoodsSKUAdmin(BaseModelAdmin):
+    list_display = ['type', 'name', 'goods', 'price', 'unite', 'desc']
     pass
 
 
 class GoodsAdmin(BaseModelAdmin):
+    list_display = ['name']
     pass
 
 
-admin.site.register(Goods, GoodsSKUAdmin)
+admin.site.register(Goods, GoodsAdmin)
 admin.site.register(GoodsSKU, GoodsSKUAdmin)
 admin.site.register(GoodsType, GoodsTypeAdmin)
 admin.site.register(IndexGoodsBanner, IndexGoodsBannerAdmin)

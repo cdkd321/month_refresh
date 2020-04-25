@@ -260,9 +260,10 @@ class UserSiteView(LoginRequiredView, View):
 
     def get(self, request):
         user = request.user
-        address = Address.objects.get_default_address(user)
-        print("address: ", address)
-        return render(request, 'user_center_site.html', {'page': 'address', 'address':address})
+        addresses = Address.objects.filter(user=user)
+        for addr in addresses:
+            print("address : ", addr)
+        return render(request, 'user_center_site.html', {'page': 'address', 'addresses': addresses})
 
     def post(self, request):
         '''地址的添加'''

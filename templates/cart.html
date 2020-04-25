@@ -1,0 +1,245 @@
+{% extends 'base_no_cart.html' %}
+{% load staticfiles  %}
+{% block title %}天天生鲜-购物车{% endblock title %}
+{% block page_title %}购物车{% endblock page_title %}
+{% block body %}
+	<div class="total_count">全部商品<em>{{ total_count }}</em>件</div>
+	<ul class="cart_list_th clearfix">
+		<li class="col01">商品名称</li>
+		<li class="col02">商品单位</li>
+		<li class="col03">商品价格</li>
+		<li class="col04">数量</li>
+		<li class="col05">小计</li>
+		<li class="col06">操作</li>
+
+	</ul>
+
+    <form method="post" action="{% url 'order:place' %}">
+        {% for sku in skus %}
+            <ul class="cart_list_td clearfix">
+                <li class="col01"><input type="checkbox" name="sku_ids" value="{{ sku.id }}" checked></li>
+                <li class="col02"><img src="{{ sku.image.url }}"></li>
+                <li class="col03">{{ sku.name }}<br><em>{{ sku.price }}元/{{ sku.unite }}</em></li>
+                <li class="col04">{{ sku.unite }}</li>
+                <li class="col05"><em>{{ sku.price }}</em>元</li>
+                <li class="col06">
+
+                    <div class="num_add">
+                        <a href="javascript:;" class="add fl">+</a>
+                        <input type="text" class="num_show fl" sku_id={{ sku.id }} value="{{ sku.count }}">
+                        <a href="javascript:;"  class="minus fl">-</a>
+                    </div>
+                </li>
+                <li class="col07"><em>{{ sku.amount }}</em>元</li>
+                <li class="col08"><a href="javascript:;" sku_id='{{ sku.id }}'>删除</a></li>
+            </ul>
+        {% endfor %}
+
+        {% csrf_token %}
+        <ul class="settlements">
+            <li class="col01"><input type="checkbox" name="" checked=""></li>
+            <li class="col02">全选</li>
+            <li class="col03">合计(不含运费)：<span>¥</span><em>{{ total_price }}</em><br>共计<b>{{ total_count }}</b>件商品</li>
+            <li class="col04"><input type="submit" value="去结算" /></li>
+        </ul>
+
+    </form>
+{% endblock body %}
+
+{% block bottomfiles %}
+    <script type="text/javascript" src="{% static 'js/jquery-1.12.4.min.js' %}">
+    </script>
+    <script type="text/javascript">
+
+
+        // 根据选中的订单，计算总件数和总价格
+        function update_total_info() {
+            total_count = 0
+            total_price = 0
+            // 单个checkbox 状态发生改变，更新总件数和总价格
+            $('.cart_list_td').find(':checked').parents('ul').each( function () {
+                // 获取商品数目和小计
+                count = $(this).find('.num_show').val()
+                count = parseInt(count)
+                price = $(this).find(".col05").children('em').text()
+                price = parseFloat(price).toFixed(2)
+                total_count += count
+                total_price += price*count
+            })
+
+            // 总价格取低2位小数
+            total_price = total_price.toFixed(2)
+            // 设置总价格
+            $('.settlements').find(".col03").find('em').text(total_price)
+            // 设置总数量
+            $('.settlements').find(".col03").find('b').text(total_count)
+            $('.total_count').children('em').text(total_count)
+        }
+
+
+        {# 获取全选按钮，添加点击事件 #}
+        $('.settlements').find(':checkbox').change(
+            function () {
+                // 获取全选的checkbox状态
+                is_checked = $(this).prop('checked')
+                $('.cart_list_td').find(':checkbox').each( function () {
+                  $(this).prop('checked', is_checked)
+                } )
+                update_total_info()
+            }
+        )
+
+        // 设置每个订单的选择框监听事件
+        $('.cart_list_td').find(':checkbox').change(
+            function () {
+                // 如果所有都被选中了，设置全选按钮 checked
+                all_len = $('.cart_list_td').length
+                sel_len = $('.cart_list_td').find(':checked').length
+
+                if(all_len === sel_len) {
+                    $('.settlements').find(':checkbox').prop('checked', 'checked')
+                } else {
+                    $('.settlements').find(':checkbox').prop('checked', '')
+                }
+
+                // 更新所有数量和价格
+                update_total_info()
+            }
+        )
+
+        // ajax请求更新购物车数据
+        error_update = false
+        m_total = 0
+        function update_sku_count(sku_id, total) {
+
+            csrf = $('input[name="csrfmiddlewaretoken"]').val()
+            // 查询是否还有库存
+            params = {
+                'sku_id': sku_id,
+                'count': total,
+                'csrfmiddlewaretoken':csrf
+            }
+            // 打开ajax同步请求设置
+            $.ajaxSetup({ async:false });
+            $.post('/cart/update', params, function(data) {
+                if (data.res == 5) {
+                    error_update = false
+                    m_total = data.total_count
+                }
+                else{
+                    // 添加失败
+                    alert(data.errmsg)
+                    error_update = true
+                    m_total = data.total_count
+                }
+            })
+            $.ajaxSetup({ async:true });
+
+        }
+
+        function update_sku_cart_info(element) {
+            count = element.find('.num_show').val()
+            count = parseInt(count)
+            price = element.find('.col05').children('em').text()
+            price = parseFloat(price).toFixed(2)
+            amount = (count * price).toFixed(2)
+            element.find(".col07").children('em').text(amount.toString())
+        }
+
+
+        // 设置添加，减少按钮被点击事件
+        // 点击+ 增加商品的数量，更新总价
+        $('.cart_list_td').find('.add').click(function () {
+            num_show_view = $(this).parent().find('.num_show')
+            total = num_show_view.val()
+            total = parseInt(total)
+            total += 1
+            alert('total:' + total)
+            sku_id = num_show_view.attr('sku_id')
+
+
+            update_sku_count(sku_id, total)
+
+            // 更新成功，修改商品总数和价格
+            if(false == error_update) {
+                // 重新设置商品的数目
+                num_show_view.val(total)
+                update_sku_cart_info($(this).parents('ul'))
+                update_total_info()
+            }
+
+        })
+
+        // 点击- 减少商品数量，更新总价
+        $('.cart_list_td').find('.minus').click(function () {
+            num_show_view = $(this).parent().find('.num_show')
+            total = num_show_view.val()
+            total = parseInt(total)
+            total += -1
+            if (total < 1) {
+                return
+            }
+            sku_id = num_show_view.attr('sku_id')
+
+            update_sku_count(sku_id, total)
+
+            if(false == error_update) {
+                num_show_view.val(total)
+                update_sku_cart_info($(this).parents('ul'))
+                update_total_info()
+            } else {
+                // do nothing
+            }
+        })
+
+        // 手动输入商品的数量
+        $('.cart_list_td').find('.num_show').blur(function () {
+            // 获取用户输入的数目
+            count = $(this).val()
+            // 校验count是否合法
+            if (isNaN(count) || count.trim().length==0 || parseInt(count) <=0){
+                count = 1
+            }
+            // 重新设置商品的数目
+            $(this).val(parseInt(count))
+            // 更新商品的总价
+            sku_id = $(this).attr('sku_id')
+            update_sku_count(sku_id, count)
+
+            if(false == error_update) {
+                $(this).val(total)
+                update_sku_cart_info($(this).parents('ul'))
+                update_total_info()
+            }
+        })
+
+        // 购物车商品 - 点击删除
+        // 点击- 减少商品数量，更新总价
+        $('.cart_list_td').find('.col08').children('a').click(function () {
+            sku_id = $(this).attr('sku_id')
+            ui_view = $(this).parents('ul')
+
+            csrf = $('input[name="csrfmiddlewaretoken"]').val()
+            // 查询是否还有库存
+            params = {
+                'sku_id': sku_id,
+                'csrfmiddlewaretoken':csrf
+            }
+            $.post('/cart/delete', params, function (data) {
+
+                // 成功了，移除视图元素
+                if (data.ret == 3) {
+                    ui_view.remove()
+                    alert(data.message)
+                } else {
+                    alert(data.errmsg)
+                }
+            })
+
+        })
+
+        update_total_info()
+
+    </script>
+
+{% endblock bottomfiles %}
