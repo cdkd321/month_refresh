@@ -2,6 +2,7 @@ from django.db import transaction
 from django.shortcuts import render, redirect
 from django.core.urlresolvers import reverse
 from django.http import JsonResponse
+from django.conf import settings
 from django.views.generic import View
 
 from user.models import Address
@@ -11,6 +12,8 @@ from order.models import OrderInfo, OrderGoods
 from django_redis import get_redis_connection
 from utils.mixin import LoginRequiredMixin
 from datetime import datetime
+from alipay import AliPay
+import os
 # Create your views here.
 
 
@@ -79,7 +82,7 @@ class OrderPlaceView(LoginRequiredMixin, View):
 
 # 前端传递的参数:地址id(addr_id) 支付方式(pay_method) 用户要购买的商品id字符串(sku_ids)
 # mysql事务: 一组sql操作，要么都成功，要么都失败
-# 高并发:秒杀
+# 高并发:秒杀 - 乐观锁的实现方式
 # 支付宝支付
 class OrderCommitView(View):
     '''订单创建'''
@@ -205,7 +208,6 @@ class OrderCommitView(View):
             order.total_price = total_price
             order.save()
 
-            OrderGoods.objects.update(sku)
             # 其他异常情况，也回滚数据，下单失败
         except Exception as e:
             transaction.savepoint_rollback(save_trans_id)
@@ -221,7 +223,7 @@ class OrderCommitView(View):
 
 # 前端传递的参数:地址id(addr_id) 支付方式(pay_method) 用户要购买的商品id字符串(sku_ids)
 # mysql事务: 一组sql操作，要么都成功，要么都失败
-# 高并发:秒杀 -- 乐观锁的实现
+# 高并发:秒杀 -- 悲观锁的实现
 # 支付宝支付
 class OrderCommitOpticView(View):
     '''订单创建'''
@@ -351,6 +353,58 @@ class OrderCommitOpticView(View):
 
 
 
+class OrderPayView(View):
+
+    def post(self, request):
+        '''
+        请求支付渠道支付款，并且轮训查询结果，查到返回给浏览器
+        让用户知道付款成功
+        '''
+        # 判断用户登录
+        user = request.user
+        if not user.is_authenticated():
+            return JsonResponse({'res': 1, 'errmsg': "用户未登录，请重新登录"})
+
+        # 参数合法性校验
+        order_id = request.POST.get('order_id')
+        if not order_id:
+            return JsonResponse({'res': 2, 'errmsg': "没有订单编号"})
+
+        # 业务执行
+        try:
+            order = OrderInfo.objects.get(order_id=order_id,
+                                          user=user,
+                                          pay_method=3,
+                                          order_status=1)
+        except OrderInfo.DoesNotExist:
+            return JsonResponse({'res': 2, 'errmsg': '订单错误'})
+
+        # 业务处理:使用python sdk调用支付宝的支付接口
+        # 初始化
+        alipay = AliPay(
+            appid="2016090800464054",  # 应用id
+            app_notify_url=None,  # 默认回调url
+            app_private_key_path=os.path.join(settings.BASE_DIR, 'apps/order/app_private_key.pem'),
+            alipay_public_key_path=os.path.join(settings.BASE_DIR, 'apps/order/alipay_public_key.pem'),
+            # 支付宝的公钥，验证支付宝回传消息使用，不是你自己的公钥,
+            sign_type="RSA2",  # RSA 或者 RSA2
+            debug=True  # 默认False
+        )
+
+        # 调用支付接口
+        # 电脑网站支付，需要跳转到https://openapi.alipaydev.com/gateway.do? + order_string
+        total_pay = order.total_price + order.transit_price  # Decimal
+        order_string = alipay.api_alipay_trade_page_pay(
+            out_trade_no=order_id,  # 订单id
+            total_amount=str(total_pay),  # 支付总金额
+            subject='天天生鲜%s' % order_id,
+            return_url=None,
+            notify_url=None  # 可选, 不填则使用默认notify url
+        )
+
+        # 返回应答
+        pay_url = 'https://openapi.alipaydev.com/gateway.do?' + order_string
+        return JsonResponse({'res': 3, 'pay_url': pay_url})
 
 
 

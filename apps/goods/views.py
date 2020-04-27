@@ -83,7 +83,7 @@ class GoodsDetail(View):
         goods_orders = OrderGoods.objects.filter(sku=goods_sku).exclude(comment='')
 
         # 获取同一类型的推荐新品信息
-        new_sku = GoodsSKU.objects.filter(type=goods_sku.type)
+        new_sku = GoodsSKU.objects.filter(type=goods_sku.type).exclude(id=goods_id)
 
         # 商品分类
         types = GoodsType.objects.all()

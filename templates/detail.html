@@ -19,29 +19,26 @@
 			<p>{{ sku.desc }}</p>
 			<div class="prize_bar">
 
-				<span class="show_pirze">¥<em>{{ sku.price }}</em></span>
+				<span class="show_pirze"><em>{{ sku.price }}</em>¥</span>
 				<span class="show_unit">单  位：{{ sku.unite }}</span>
 			</div>
 			<div class="goods_num clearfix">
 
-
-                <div class="num_name fl">数 量：</div> </br>
+                <div class="num_name fl">数 量：</div>
 
 				<div class="num_add fl">
 					<input type="text" class="num_show fl" value="1">
 					<a href="javascript:;" class="add fr">+</a>
 					<a href="javascript:;" class="minus fr">-</a>
 				</div>
-			</div>
-            <div class="num_name fl">其他规格：
-                <span>
-                    <ui>
-                         {% for other in other_sku %}
-                             <a href="{% url 'goods:detail' other.id  %}" > 名称：{{ other.name }} </a></li>
-                         {% endfor %}
-
-                    </ui>
-                </span>
+            </div>
+            <div>
+                <p>其他规格：</p>
+                <ui>
+                     {% for other in other_sku %}
+                         <li><a href="{% url 'goods:detail' other.id  %}" > 名称：{{ other.name }} </a></li>
+                     {% endfor %}
+                </ui>
             </div>
 			<div class="total">总价：<em>16.80元</em></div>
 			<div class="operate_btn">
