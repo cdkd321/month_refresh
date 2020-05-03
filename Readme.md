@@ -73,5 +73,10 @@ vine                  1.3.0
 wheel                 0.33.6    
 Whoosh                2.7.4
    
+   
+2020-05-04 
+* 增加了 uwsgi 部署配置
+* 增加了 nginx 负载均衡的配置 
+* nginx 配置 参考文件[nginx配置](nginx.conf) 
 
  

@@ -66,7 +66,7 @@ def generate_static_index_html():
 
     # 使用模板
     # 1.加载模板文件,返回模板对象
-    temp = loader.get_template('static_index.html')
+    temp = loader.get_template('index.html')
     # 2.模板渲染
     static_index_html = temp.render(context)
 
